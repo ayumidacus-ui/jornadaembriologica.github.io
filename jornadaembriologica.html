@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada Embriológica: Anexos Embrionários e Organogênese</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    
+    <!-- PeerJS CDN para Conexão Multiplayer Direta (WebRTC) -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-heading {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        /* 3D Dice Styling */
+        .dice-scene {
+            width: 72px;
+            height: 72px;
+            perspective: 400px;
+        }
+        .dice {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .dice-face {
+            position: absolute;
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(145deg, #ffffff, #e2e8f0);
+            border: 2px solid #cbd5e1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.15), 0 6px 12px rgba(0,0,0,0.4);
+        }
+        .dice-face span {
+            width: 13px;
+            height: 13px;
+            background: #0f172a;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+        }
+        .dice-face span.red-dot { background: #ef4444; }
+        
+        .face-1 { transform: translateZ(36px); }
+        .face-2 { transform: rotateY(180deg) translateZ(36px); }
+        .face-3 { transform: rotateY(-90deg) translateZ(36px); }
+        .face-4 { transform: rotateY(90deg) translateZ(36px); }
+        .face-5 { transform: rotateX(-90deg) translateZ(36px); }
+        .face-6 { transform: rotateX(90deg) translateZ(36px); }
+
+        .dot-grid {
+            display: grid;
+            width: 80%;
+            height: 80%;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            place-items: center;
+        }
+
+        /* 3D CARD ANIMATION STYLES */
+        .card-3d-scene {
+            perspective: 1200px;
+            width: 280px;
+            height: 400px;
+        }
+        .card-3d-object {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .card-3d-object.flipped { transform: rotateY(180deg); }
+        .card-3d-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1.75rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+        }
+        .card-3d-back {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            border: 2px solid #ec4899;
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.35);
+        }
+        .card-3d-front {
+            transform: rotateY(180deg);
+            background: #090d16;
+            border: 2px solid #f59e0b;
+        }
+        .card-3d-front.sorte-border {
+            border-color: #10b981;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.35);
+        }
+        .card-3d-front.azar-border {
+            border-color: #f43f5e;
+            box-shadow: 0 0 35px rgba(244, 63, 94, 0.35);
+        }
+
+        .tile-card { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tile-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            z-index: 20;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 15px rgba(129, 140, 248, 0.3);
+        }
+
+        @keyframes pawnStep {
+            0% { transform: translateY(0) scale(1, 1); }
+            30% { transform: translateY(-22px) scale(0.85, 1.25); }
+            70% { transform: translateY(-5px) scale(1.15, 0.85); }
+            100% { transform: translateY(0) scale(1, 1); }
+        }
+        .pawn-jumping { animation: pawnStep 0.35s ease-in-out; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.8); }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+    </style>
+</head>
+<body class="relative flex flex-col items-center justify-between min-h-screen p-2 sm:p-4 md:p-6">
+
+    <canvas id="bg-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Setup Modal -->
+    <div id="setup-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-6 sm:p-8 flex flex-col items-center border border-indigo-500/30 shadow-2xl relative my-auto">
+            
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30">
+                <i data-lucide="dna" class="w-8 h-8 text-white animate-pulse"></i>
+            </div>
+
+            <h2 class="text-2xl sm:text-3xl font-black text-center bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 mb-1">
+                Jornada Embriológica
+            </h2>
+            <p class="text-xs sm:text-sm text-indigo-300/80 font-medium text-center mb-6">
+                Anexos Embrionários e Organogênese • Configuração
+            </p>
+
+            <div class="w-full grid grid-cols-2 gap-3 mb-6">
+                <button type="button" onclick="switchGameMode('local')" id="btn-mode-local" class="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-indigo-600 text-white border border-indigo-400/50 shadow-lg flex items-center justify-center gap-2 transition">
+                    <i data-lucide="users" class="w-4 h-4"></i> Local (Mesmo PC/Telão)
+                </button>
+                <button type="button" onclick="switchGameMode('online')" id="btn-mode-online" class="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center gap-2 transition">
+                    <i data-lucide="globe" class="w-4 h-4"></i> Online (Cada um no celular)
+                </button>
+            </div>
+
+            <!-- LOCAL SETUP VIEW -->
+            <div id="local-setup-view" class="w-full flex flex-col items-center">
+                <div class="w-full mb-6">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Número de Jogadores:</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button type="button" onclick="setPlayerCount(2)" id="btn-count-2" class="player-count-btn py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white border border-indigo-400/50 shadow-md transition">2 Jogadores</button>
+                        <button type="button" onclick="setPlayerCount(3)" id="btn-count-3" class="player-count-btn py-2.5 rounded-xl font-bold text-sm bg-slate-800 text-slate-300 border border-slate-700 transition">3 Jogadores</button>
+                        <button type="button" onclick="setPlayerCount(4)" id="btn-count-4" class="player-count-btn py-2.5 rounded-xl font-bold text-sm bg-slate-800 text-slate-300 border border-slate-700 transition">4 Jogadores</button>
+                    </div>
+                </div>
+
+                <div id="player-inputs-container" class="w-full flex flex-col gap-3 mb-6"></div>
+
+                <button onclick="confirmAndStartGameLocal()" class="w-full py-4 rounded-2xl font-black text-base tracking-wide bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white shadow-xl shadow-indigo-500/30 active:scale-95 transition flex items-center justify-center gap-2">
+                    <i data-lucide="play" class="w-5 h-5 fill-current"></i> INICIAR PARTIDA LOCAL
+                </button>
+            </div>
+
+            <!-- ONLINE SETUP VIEW -->
+            <div id="online-setup-view" class="w-full flex flex-col items-center hidden">
+                <div class="w-full space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Seu Apelido / Nome:</label>
+                        <input type="text" id="online-player-name" placeholder="Ex: Dr. Jonathan" class="w-full bg-slate-800 text-xs font-bold text-white px-3.5 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div id="online-actions-box" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div class="p-4 rounded-2xl bg-slate-900/80 border border-indigo-500/30 flex flex-col gap-2">
+                            <span class="text-xs font-bold text-indigo-300">1. Criar Nova Sala</span>
+                            <button onclick="createOnlineRoom()" class="w-full py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md transition">
+                                Gerar Código de Sala
+                            </button>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-slate-900/80 border border-indigo-500/30 flex flex-col gap-2">
+                            <span class="text-xs font-bold text-indigo-300">2. Entrar em Sala Existente</span>
+                            <div class="flex gap-2">
+                                <input type="number" id="online-room-code-input" placeholder="Ex: 4092" class="w-full bg-slate-800 text-xs font-bold text-white px-2.5 py-1.5 rounded-lg border border-slate-700">
+                                <button onclick="joinOnlineRoom()" class="py-1.5 px-3 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition">
+                                    Entrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Online Lobby Box -->
+                    <div id="online-lobby-box" class="w-full p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 hidden">
+                        <div class="flex items-center justify-between mb-3 border-b border-indigo-800/60 pb-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Código da Sala</span>
+                                <h4 id="lobby-room-code-display" class="text-lg font-black text-pink-400 font-mono">---</h4>
+                            </div>
+                            <span id="lobby-status-tag" class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-500/30 font-bold">Criando Sala...</span>
+                        </div>
+                        <div id="lobby-players-list" class="space-y-2 mb-4"></div>
+                        <button id="btn-start-online-game" onclick="startOnlineGameHost()" class="w-full py-3 rounded-xl font-black text-xs tracking-wide bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg hidden">
+                            INICIAR JOGO ONLINE
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN GAME CONTAINER -->
+    <header class="w-full max-w-7xl glass-panel rounded-2xl p-4 mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-indigo-500/20 relative z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i data-lucide="microscope" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300">
+                    Jornada Embriológica
+                </h1>
+                <p class="text-[11px] text-indigo-300/80 font-medium">Anexos Embrionários e Organogênese</p>
+            </div>
+        </div>
+
+        <div id="online-room-indicator" class="hidden px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-500/40 text-xs font-mono font-bold text-indigo-200 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>SALA: <strong id="header-room-code-text" class="text-pink-400">---</strong></span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button onclick="openGlossaryModal()" class="px-3.5 py-2 rounded-xl bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 text-xs font-bold border border-indigo-700/50 flex items-center gap-2 transition shadow-md">
+                <i data-lucide="book-open" class="w-4 h-4 text-indigo-400"></i>
+                <span>Glossário Embriológico</span>
+            </button>
+
+            <div class="flex items-center gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700/60">
+                <button id="btn-play-audio" onclick="toggleAudio()" class="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center justify-center shadow-md">
+                    <i id="icon-play" data-lucide="play" class="w-4 h-4"></i>
+                </button>
+                <div class="flex flex-col hidden sm:flex">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Trilha Sonora</span>
+                    <select id="select-track" onchange="changeTrack(this.value)" class="bg-slate-800 text-[11px] text-indigo-200 rounded px-1.5 py-0.5 outline-none border border-slate-700 cursor-pointer font-semibold">
+                        <option value="1">🎵 Origem da Vida</option>
+                        <option value="2">🎷 Ritmo da Mitose</option>
+                        <option value="3">🚀 Jornada Épica</option>
+                        <option value="4">🌊 Harmonia Celular</option>
+                    </select>
+                </div>
+                <input id="volume-slider" type="range" min="0" max="1" step="0.05" value="0.4" oninput="setVolume(this.value)" class="w-14 sm:w-16 accent-indigo-500 cursor-pointer">
+                <button id="btn-sfx" onclick="toggleSFX()" class="px-2 py-1 rounded bg-slate-800 text-[10px] font-bold text-emerald-400 border border-slate-700">
+                    SFX
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4 relative z-10">
+        <section class="lg:col-span-8 flex flex-col gap-3">
+            <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-3 border-l-4 border-indigo-500">
+                <div class="flex items-center gap-3">
+                    <div id="active-player-badge" class="w-4 h-4 rounded-full bg-blue-500 ring-4 ring-blue-500/30"></div>
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Jogador Atual</span>
+                        <h2 id="active-player-name" class="text-sm sm:text-base font-bold text-white">Aguardando início...</h2>
+                    </div>
+                </div>
+                <div id="game-status-text" class="text-xs font-medium text-indigo-200 bg-indigo-950/80 px-3 py-1.5 rounded-xl border border-indigo-800/50">
+                    Aguardando...
+                </div>
+            </div>
+
+            <div class="glass-panel p-3 sm:p-4 rounded-2xl">
+                <div id="board-grid" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-6 gap-2 sm:gap-2.5"></div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-4 flex flex-col gap-4">
+            <div class="glass-panel p-5 rounded-2xl flex flex-col items-center justify-center gap-4 text-center relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-600/10 rounded-full blur-2xl pointer-events-none"></div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Lançamento de Dado</h3>
+                
+                <div class="dice-scene my-1">
+                    <div id="dice-cube" class="dice">
+                        <div class="dice-face face-1"><div class="dot-grid"><span class="col-start-2 row-start-2 red-dot"></span></div></div>
+                        <div class="dice-face face-2"><div class="dot-grid"><span class="col-start-1 row-start-1"></span><span class="col-start-3 row-start-3"></span></div></div>
+                        <div class="dice-face face-3"><div class="dot-grid"><span class="col-start-1 row-start-1"></span><span class="col-start-2 row-start-2"></span><span class="col-start-3 row-start-3"></span></div></div>
+                        <div class="dice-face face-4"><div class="dot-grid"><span class="col-start-1 row-start-1"></span><span class="col-start-3 row-start-1"></span><span class="col-start-1 row-start-3"></span><span class="col-start-3 row-start-3"></span></div></div>
+                        <div class="dice-face face-5"><div class="dot-grid"><span class="col-start-1 row-start-1"></span><span class="col-start-3 row-start-1"></span><span class="col-start-2 row-start-2 red-dot"></span><span class="col-start-1 row-start-3"></span><span class="col-start-3 row-start-3"></span></div></div>
+                        <div class="dice-face face-6"><div class="dot-grid"><span class="col-start-1 row-start-1"></span><span class="col-start-3 row-start-1"></span><span class="col-start-1 row-start-2"></span><span class="col-start-3 row-start-2"></span><span class="col-start-1 row-start-3"></span><span class="col-start-3 row-start-3"></span></div></div>
+                    </div>
+                </div>
+
+                <button id="btn-roll" onclick="dispatchAction('ROLL_DICE')" class="w-full py-3.5 px-6 rounded-xl font-black text-xs sm:text-sm tracking-wide bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white shadow-lg shadow-indigo-500/25 active:scale-95 transition flex items-center justify-center gap-2">
+                    <i data-lucide="dices" class="w-5 h-5"></i> ROLAR DADO
+                </button>
+            </div>
+
+            <div class="glass-panel p-4 rounded-2xl flex flex-col gap-2.5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>Participantes</span>
+                    <span id="player-count-badge" class="text-[10px] text-indigo-400 font-bold"></span>
+                </h3>
+                <div id="players-list" class="flex flex-col gap-2"></div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-2xl flex flex-col gap-2 flex-1 min-h-[160px]">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i data-lucide="history" class="w-3.5 h-3.5 text-indigo-400"></i> Histórico da Partida
+                </h3>
+                <div id="game-log" class="flex-1 max-h-40 overflow-y-auto pr-1 flex flex-col gap-1.5 text-[11px] text-slate-300 font-mono">
+                    <div class="text-slate-500 italic">Configure a partida para iniciar!</div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- 3D CARD FLIP MODAL -->
+    <div id="card-3d-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="card-3d-scene">
+            <div id="card-3d-object" class="card-3d-object">
+                <div class="card-3d-face card-3d-back">
+                    <div class="w-16 h-16 rounded-2xl bg-pink-500/20 border border-pink-400/30 flex items-center justify-center my-auto shadow-lg">
+                        <i data-lucide="help-circle" class="w-10 h-10 text-pink-400 animate-bounce"></i>
+                    </div>
+                    <div class="my-auto">
+                        <h3 class="text-xl font-black text-white uppercase tracking-wider">SORTE OU AZAR</h3>
+                        <p class="text-[11px] text-indigo-300/80 mt-1">Toque na carta para revelar!</p>
+                    </div>
+                    <div class="text-[10px] font-bold text-pink-400/70 uppercase tracking-widest bg-slate-900/60 px-3 py-1 rounded-full border border-pink-500/20">
+                        🎴 JORNADA EMBRIOLÓGICA
+                    </div>
+                </div>
+
+                <div id="card-3d-front-face" class="card-3d-face card-3d-front">
+                    <div id="card-3d-badge" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        CARTA REVELADA
+                    </div>
+
+                    <div class="my-auto w-full">
+                        <h3 id="card-3d-title" class="text-base sm:text-lg font-black text-white mb-1 leading-snug">Título</h3>
+                        <p id="card-3d-desc" class="text-xs text-slate-300 leading-relaxed mb-3">Descrição...</p>
+
+                        <div class="w-full p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-left mb-2">
+                            <span class="text-[9px] font-bold text-indigo-300 uppercase block mb-0.5">💡 Conceito Científico:</span>
+                            <p id="card-3d-concept" class="text-[10px] text-slate-200/90 italic line-clamp-3">Explicação...</p>
+                        </div>
+                    </div>
+
+                    <button id="card-3d-btn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold text-xs tracking-wide shadow-lg transition">
+                        CONTINUAR ➡️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Educational Modal -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 relative flex flex-col items-center text-center shadow-2xl border border-indigo-500/30">
+            <div id="modal-icon-bg" class="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center mb-3 shadow-inner">
+                <i id="modal-icon" data-lucide="sparkles" class="w-7 h-7 text-indigo-300"></i>
+            </div>
+
+            <span id="modal-tag" class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-950 text-indigo-300 mb-2 border border-indigo-700/50">
+                MARCO BIOLÓGICO
+            </span>
+
+            <h3 id="modal-title" class="text-xl font-black text-white mb-2">Título</h3>
+            <p id="modal-desc" class="text-xs text-slate-300 leading-relaxed mb-4">Descrição.</p>
+
+            <div class="w-full p-3.5 rounded-2xl bg-indigo-950/80 border border-indigo-700/60 mb-4 text-left">
+                <div class="flex items-center gap-2 mb-1 text-indigo-300 font-bold text-xs uppercase tracking-wider">
+                    <i data-lucide="book-open-check" class="w-4 h-4 text-pink-400"></i>
+                    <span>Conceito Didático / Explicação Científica:</span>
+                </div>
+                <p id="modal-concept-text" class="text-xs text-indigo-100/90 leading-relaxed italic">Explicação detalhada.</p>
+            </div>
+
+            <div id="modal-effect-box" class="w-full p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/60 mb-5 text-xs text-indigo-200 font-bold">
+                Efeito da jogada...
+            </div>
+
+            <button id="modal-btn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/30 transition">
+                CONTINUAR PARTIDA
+            </button>
+        </div>
+    </div>
+
+    <!-- Glossário Modal -->
+    <div id="glossary-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-3xl w-full max-h-[85vh] rounded-3xl p-6 flex flex-col border border-indigo-500/30 shadow-2xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600/30 flex items-center justify-center">
+                        <i data-lucide="book-open" class="w-5 h-5 text-indigo-300"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-white">Glossário Embriológico</h3>
+                        <p class="text-xs text-slate-400">Consulte os conceitos biológicos e anexos embrionários</p>
+                    </div>
+                </div>
+                <button onclick="closeGlossaryModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <input id="glossary-search" type="text" oninput="filterGlossary(this.value)" placeholder="Buscar conceito (ex: Âmnio, Gastrulação, Placenta)..." class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div id="glossary-grid" class="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+    </div>
+
+    <!-- Target Selection Modal -->
+    <div id="target-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-sm w-full rounded-2xl p-6 flex flex-col items-center text-center">
+            <i data-lucide="users" class="w-10 h-10 text-amber-400 mb-2"></i>
+            <h3 id="target-modal-title" class="text-base font-bold text-white mb-1">Interação Biológica</h3>
+            <p id="target-modal-desc" class="text-xs text-slate-300 mb-4">Escolha um jogador afetado:</p>
+            <div id="target-buttons" class="w-full flex flex-col gap-2"></div>
+        </div>
+    </div>
+
+    <footer class="w-full max-w-7xl text-center py-2 text-[11px] text-slate-500 font-medium flex items-center justify-between border-t border-slate-800/60 mt-auto relative z-10">
+        <span>© Jornada Embriológica • Anexos Embrionários & Organogênese</span>
+        <span>Ferramenta Educativa de Ensino-Aprendizagem</span>
+    </footer>
+
+    <script>
+        /* SINTETIZADOR AUDIO WEB API */
+        let audioCtx = null, masterGainNode = null, isAudioPlaying = false, currentTrack = 1, musicTimer = null, noteStep = 0, sfxEnabled = true;
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                masterGainNode = audioCtx.createGain();
+                masterGainNode.gain.value = 0.4;
+                masterGainNode.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSoundFX(type) {
+            if (!sfxEnabled) return;
+            initAudioContext();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(masterGainNode);
+
+            if (type === 'step') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(340, now); osc.frequency.exponentialRampToValueAtTime(680, now + 0.08);
+                gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'dice') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'good') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                    o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(masterGainNode);
+                    g.gain.setValueAtTime(0.12, now + idx * 0.08); g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+                    o.start(now + idx * 0.08); o.stop(now + idx * 0.08 + 0.25);
+                });
+            } else if (type === 'bad') {
+                [400, 340, 280, 220].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                    o.type = 'sawtooth'; o.frequency.value = freq; o.connect(g); g.connect(masterGainNode);
+                    g.gain.setValueAtTime(0.1, now + idx * 0.1); g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.2);
+                    o.start(now + idx * 0.1); o.stop(now + idx * 0.1 + 0.2);
+                });
+            }
+        }
+
+        function playMusicStep() {
+            if (!isAudioPlaying || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            if (currentTrack == 1 && noteStep % 2 === 0) {
+                const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+                const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(scale[Math.floor(Math.random() * scale.length)], now);
+                g.gain.setValueAtTime(0.04, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                osc.connect(g); g.connect(masterGainNode); osc.start(now); osc.stop(now + 0.6);
+            }
+            noteStep++;
+        }
+
+        function toggleAudio() {
+            initAudioContext();
+            isAudioPlaying = !isAudioPlaying;
+            const btnIcon = document.getElementById('icon-play');
+            if (isAudioPlaying) {
+                btnIcon.setAttribute('data-lucide', 'pause');
+                musicTimer = setInterval(playMusicStep, 220);
+            } else {
+                btnIcon.setAttribute('data-lucide', 'play');
+                clearInterval(musicTimer);
+            }
+            lucide.createIcons();
+        }
+
+        function changeTrack(val) { currentTrack = parseInt(val); noteStep = 0; }
+        function setVolume(val) { initAudioContext(); masterGainNode.gain.value = parseFloat(val); }
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            const btn = document.getElementById('btn-sfx');
+            btn.textContent = `SFX: ${sfxEnabled ? 'ON' : 'OFF'}`;
+            btn.className = `px-2 py-1 rounded text-[10px] font-bold ${sfxEnabled ? 'text-emerald-400 bg-slate-800' : 'text-slate-500 bg-slate-900'}`;
+        }
+
+        /* BANCO DE DADOS DAS CASAS DO TABULEIRO */
+        const BOARD_TILES = [
+            { id: 1, type: 'start', title: 'Zígoto e Fecundação', desc: 'Início do desenvolvimento humano pós-fertilização.', concept: 'A fecundação ocorre na ampola da tuba uterina, restaurando o genoma diploide (46 cromossomos).', color: 'from-blue-600 to-indigo-600', icon: 'play-circle' },
+            { id: 2, type: 'neutral', title: 'Primeira Clivagem', desc: 'Divisão mitótica gerando 2 blastômeros.', concept: 'Divisões mitóticas sem aumento de volume devido à restrição da zona pelúcida.', color: 'from-slate-700 to-slate-800', icon: 'circle-dot' },
+            { id: 3, type: 'marco', title: 'Mórula (16 Células)', desc: 'Compactação e junções comunicantes.', concept: 'Massa celular densa semelhante a uma amora. A compactação maximiza os contatos celulares.', action: 'advance', count: 1, color: 'from-emerald-600 to-teal-700', icon: 'award' },
+            { id: 4, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Microambiente e fatores parácrinos.', concept: 'Sinalizações bioquímicas determinam a sobrevivência do embrião.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 5, type: 'neutral', title: 'Cavidade Blastocística', desc: 'Formação da blastocele e trofoblasto.', concept: 'Influxo de fluido cria a blastocele, segregando Trofoblasto (anexos) e Embrioblasto.', color: 'from-slate-700 to-slate-800', icon: 'droplet' },
+            { id: 6, type: 'obstaculo', title: 'Eclodimento Falho', desc: 'Zona Pelúcida persistente.', concept: 'A ausência de eclosão enzimática impede a nidação no endométrio.', action: 'back', count: 2, color: 'from-rose-600 to-red-700', icon: 'alert-triangle' },
+            { id: 7, type: 'marco', title: 'Nidação / Implantação', desc: 'Adesão ao epitélio endometrial.', concept: 'O trofoblasto adere e invade o endométrio uterino na 1ª semana.', action: 'advance', count: 2, color: 'from-emerald-600 to-teal-700', icon: 'sparkles' },
+            { id: 8, type: 'neutral', title: 'Sinciciotrofoblasto', desc: 'Secreção de hCG e invasão tecidual.', concept: 'Camada multinucleada que produz hCG para manter a progesterona.', color: 'from-slate-700 to-slate-800', icon: 'shield' },
+            { id: 9, type: 'permuta', title: 'Permutação Celular', desc: 'Troca de Sinais: Mude de posição com um oponente!', concept: 'Plasticidade celular inicial permite regulação embrionária.', color: 'from-purple-600 to-pink-600', icon: 'repeat' },
+            { id: 10, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Balanço Progestágeno Maternal.', concept: 'Hormônios garantem a receptividade da janela uterina.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 11, type: 'marco', title: 'Disco Bilaminar', desc: 'Diferenciação em Epiblasto e Hipoblasto.', concept: 'Na 2ª semana o embrioblasto divide-se em Epiblasto e Hipoblasto.', action: 'advance', count: 1, color: 'from-emerald-600 to-teal-700', icon: 'layers' },
+            { id: 12, type: 'obstaculo', title: 'Pausa na Mitose', desc: 'Atraso na expressão de ciclinas.', concept: 'Anomalias no ciclo celular pausam a proliferação. Fique 1 rodada sem jogar.', action: 'skip', count: 1, color: 'from-rose-600 to-red-700', icon: 'pause-circle' },
+            { id: 13, type: 'neutral', title: 'Saco Vitelino Primário', desc: 'Anexo de Nutrição & Hematopoiese.', concept: 'Primeiro sítio de formação das células sanguíneas e germinativas primordiais.', color: 'from-slate-700 to-slate-800', icon: 'heart-pulse' },
+            { id: 14, type: 'marco', title: 'Âmnio e Líquido Amniótico', desc: 'Proteção contra choques mecânicos.', concept: 'O líquido amniótico amortece impactos e previne aderências no embrião.', action: 'advance', count: 2, color: 'from-emerald-600 to-teal-700', icon: 'shield-check' },
+            { id: 15, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Expressão dos Genes Hox.', concept: 'Os genes Homeobox orientam o padrão do eixo anteroposterior.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 16, type: 'inibicao', title: 'Inibição Parácrina', desc: 'Congelar um adversário por 1 rodada.', concept: 'Antagonistas proteicos inibem destinos celulares vizinhos.', color: 'from-indigo-700 to-violet-800', icon: 'snowflake' },
+            { id: 17, type: 'neutral', title: 'Linha Primitiva', desc: 'Estabelecimento do eixo corporal.', concept: 'Define os eixos craniocaudal, esquerdo-direito e dorsal-ventral.', color: 'from-slate-700 to-slate-800', icon: 'compass' },
+            { id: 18, type: 'marco', title: 'Gastrulação (3 Folhetos)', desc: 'Ectoderma, Mesoderma e Endoderma!', concept: 'Transformação em disco trilaminar, origem de todos os tecidos adultos.', action: 'advance', count: 2, color: 'from-emerald-600 to-teal-700', icon: 'zap' },
+            { id: 19, type: 'obstaculo', title: 'Falha na Notocorda', desc: 'Indução neural deficiente.', concept: 'A notocorda é o indutor primário do sistema nervoso central.', action: 'back', count: 3, color: 'from-rose-600 to-red-700', icon: 'corner-down-left' },
+            { id: 20, type: 'neutral', title: 'Alantoide', desc: 'Anexo de reserva e vasos umbilicais.', concept: 'Induz a formação dos vasos sanguíneos umbilicais.', color: 'from-slate-700 to-slate-800', icon: 'activity' },
+            { id: 21, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Relógio de Segmentação Somítica.', concept: 'Sinais Notch e Wnt comandam a formação ritmada dos somitos.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 22, type: 'marco', title: 'Neurulação (Tubo Neural)', desc: 'Primórdio do Sistema Nervoso Central.', concept: 'A placa neural se dobra formando o tubo neural (cérebro e medula).', action: 'advance', count: 1, color: 'from-emerald-600 to-teal-700', icon: 'cpu' },
+            { id: 23, type: 'neutral', title: 'Cório & Vilosidades', desc: 'Porção fetal da Placenta.', concept: 'Vilosidades coriônicas interagem com as lacunas de sangue materno.', color: 'from-slate-700 to-slate-800', icon: 'globe' },
+            { id: 24, type: 'obstaculo', title: 'Apoptose Descontrolada', desc: 'Morte celular nas cristas neurais.', concept: 'Eliminação não programada de células essenciais. Perca 1 rodada.', action: 'skip', count: 1, color: 'from-rose-600 to-red-700', icon: 'slash' },
+            { id: 25, type: 'permuta', title: 'Permutação Celular', desc: 'Morfogênese: Troque de posição com o líder!', concept: 'Intercalação de tecidos rearranja as posições celulares.', color: 'from-purple-600 to-pink-600', icon: 'repeat' },
+            { id: 26, type: 'marco', title: 'Coração Tubular Primordial', desc: 'Primeiro órgão funcional em atividade.', concept: 'Começa a bater por volta do 21º ao 22º dia pós-fecundação.', action: 'advance', count: 2, color: 'from-emerald-600 to-teal-700', icon: 'heart' },
+            { id: 27, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Diferenciação dos Arcos Faríngeos.', concept: 'Desenvolvem mandíbula, ossículos da audição e cartilagens.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 28, type: 'neutral', title: 'Dobramento Embrionário', desc: 'Formato tridimensional C-shaped.', concept: 'O embrião ganha contorno humano e incorpora o intestino primitivo.', color: 'from-slate-700 to-slate-800', icon: 'refresh-cw' },
+            { id: 29, type: 'obstaculo', title: 'Defeito do Neuróporo', desc: 'Atraso no fechamento caudal.', concept: 'Falhas de fechamento levam a anomalias como espinha bífida.', action: 'back', count: 2, color: 'from-rose-600 to-red-700', icon: 'alert-circle' },
+            { id: 30, type: 'marco', title: 'Brotamento dos Membros', desc: 'Crista Ectodérmica Apical.', concept: 'Brotos dos membros aparecem na 4ª semana orientados pela AER.', action: 'advance', count: 1, color: 'from-emerald-600 to-teal-700', icon: 'move' },
+            { id: 31, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Barreira Placentária Eficiente.', concept: 'Garante trocas gasosas, de nutrientes e excretas entre mãe e filho.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 32, type: 'inibicao', title: 'Inibição Parácrina', desc: 'Bloqueio de gradiente Sonic Hedgehog.', concept: 'Restringe expressões simétricas de estruturas corporais.', color: 'from-indigo-700 to-violet-800', icon: 'snowflake' },
+            { id: 33, type: 'neutral', title: 'Morfogênese Facial', desc: 'Processos nasais e maxilares.', concept: 'Fusão das proeminências nasais e maxilares molda a face humana.', color: 'from-slate-700 to-slate-800', icon: 'smile' },
+            { id: 34, type: 'marco', title: 'Cordão Umbilical & Hérnia', desc: 'Geleia de Wharton e alças intestinais.', concept: 'Contém 2 artérias e 1 veia envolvidas pela geleia protetora de Wharton.', action: 'advance', count: 1, color: 'from-emerald-600 to-teal-700', icon: 'trending-up' },
+            { id: 35, type: 'sorte_azar', title: 'Sorte ou Azar', desc: 'Final da Organogênese Primária!', concept: 'Primórdios de todos os sistemas estão estabelecidos na 8ª semana.', color: 'from-amber-600 to-orange-600', icon: 'help-circle' },
+            { id: 36, type: 'finish', title: 'Feto Formado (8ª Semana)', desc: 'Conclusão da Organogênese!', concept: 'O embrião passa a ser chamado de FETO com aspecto humano. Vitória!', color: 'from-yellow-500 to-amber-600', icon: 'trophy' }
+        ];
+
+        const CARDS_SORTE_AZAR = [
+            { type: 'sorte', title: 'Suplementação de Ácido Fólico', desc: 'Preveniu defeitos no tubo neural!', concept: 'Essencial para a síntese de DNA e fechamento dos neuróporos.', effect: 'advance', count: 3 },
+            { type: 'sorte', title: 'Sinalização Eficiente de FGF8', desc: 'Gastrulação e migração celular perfeitas.', concept: 'Controla a migração e especificação celular.', effect: 'advance', count: 2 },
+            { type: 'azar', title: 'Agente Teratogênico Detectado', desc: 'Exposição a substâncias nocivas no período crítico.', concept: 'A organogênese é vulnerável a teratógenos externos.', effect: 'back', count: 2 },
+            { type: 'azar', title: 'Bloqueio na Via Notch/Wnt', desc: 'Interrupção temporária na somitogênese.', concept: 'Depende de oscilações na via Notch para formar somitos.', effect: 'skip', count: 1 },
+            { type: 'sorte', title: 'Vascularização Placentária', desc: 'Ótima perfusão das vilosidades coriônicas.', concept: 'Artérias uterinas garantem aporte de O2 e nutrientes.', effect: 'extra_turn' },
+            { type: 'azar', title: 'Isquemia do Córion Frondoso', desc: 'Instabilidade transitória na lacuna intervilosa.', concept: 'Reduções no fluxo sanguíneo diminuem o metabolismo.', effect: 'back', count: 3 }
+        ];
+
+        const AVATARS = [
+            { id: 1, name: 'Zígoto Azul', color: '#38bdf8', bgTailwind: 'bg-sky-500' },
+            { id: 2, name: 'Blastocisto Rosa', color: '#f43f5e', bgTailwind: 'bg-rose-500' },
+            { id: 3, name: 'Embrião Dourado', color: '#f59e0b', bgTailwind: 'bg-amber-500' },
+            { id: 4, name: 'Feto Esmeralda', color: '#10b981', bgTailwind: 'bg-emerald-500' }
+        ];
+
+        /* ESTADO MESTRE DO JOGO E NETWORKING */
+        let gameMode = 'local';
+        let myPlayerId = 1;
+        let roomCode = '';
+        let isHost = true;
+
+        let peer = null;
+        let peerConns = {};
+        let hostConn = null;
+
+        let selectedPlayerCount = 2;
+
+        let gameState = {
+            status: 'setup',
+            currentPlayerIdx: 0,
+            isMoving: false,
+            players: [],
+            modalState: null,
+            logHistory: []
+        };
+
+        function switchGameMode(mode) {
+            gameMode = mode;
+            const btnLocal = document.getElementById('btn-mode-local');
+            const btnOnline = document.getElementById('btn-mode-online');
+            const localView = document.getElementById('local-setup-view');
+            const onlineView = document.getElementById('online-setup-view');
+
+            if (mode === 'local') {
+                btnLocal.className = 'py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-indigo-600 text-white border border-indigo-400/50 shadow-lg flex items-center justify-center gap-2 transition';
+                btnOnline.className = 'py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center gap-2 transition';
+                localView.classList.remove('hidden');
+                onlineView.classList.add('hidden');
+            } else {
+                btnOnline.className = 'py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-indigo-600 text-white border border-indigo-400/50 shadow-lg flex items-center justify-center gap-2 transition';
+                btnLocal.className = 'py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center gap-2 transition';
+                onlineView.classList.remove('hidden');
+                localView.classList.add('hidden');
+            }
+        }
+
+        function setPlayerCount(count) {
+            selectedPlayerCount = count;
+            document.querySelectorAll('.player-count-btn').forEach(btn => {
+                btn.className = 'player-count-btn py-2.5 rounded-xl font-bold text-sm bg-slate-800 text-slate-300 border border-slate-700 transition';
+            });
+            document.getElementById(`btn-count-${count}`).className = 'player-count-btn py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white border border-indigo-400/50 shadow-md transition';
+            renderSetupPlayerInputs();
+        }
+
+        function renderSetupPlayerInputs() {
+            const container = document.getElementById('player-inputs-container');
+            container.innerHTML = '';
+            const defaultNames = ['Dr. Jonathan', 'Bióloga Maria', 'Estudante Lucas', 'Prof. Carla'];
+
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const av = AVATARS[i];
+                const div = document.createElement('div');
+                div.className = 'p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center gap-3';
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-xl ${av.bgTailwind} flex items-center justify-center font-black text-xs text-white shadow">P${i + 1}</div>
+                    <div class="flex-1">
+                        <label class="block text-[10px] text-slate-400 font-bold uppercase">Nome do Jogador ${i + 1}:</label>
+                        <input type="text" id="input-player-name-${i}" value="${defaultNames[i]}" class="w-full bg-slate-800 text-xs font-bold text-white px-3 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-indigo-500">
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function confirmAndStartGameLocal() {
+            gameState.players = [];
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const nameInput = document.getElementById(`input-player-name-${i}`);
+                const name = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : `Jogador ${i + 1}`;
+                const av = AVATARS[i];
+                gameState.players.push({ id: i + 1, name: name, color: av.color, bgTailwind: av.bgTailwind, tile: 1, skippedTurns: 0, isWinner: false });
+            }
+
+            gameState.status = 'playing';
+            isHost = true;
+            myPlayerId = 1;
+            addLogToState(`Partida Local iniciada com ${gameState.players.length} participantes!`);
+            applySyncedState(gameState);
+        }
+
+        /* LÓGICA ONLINE (PEERJS) */
+        function createOnlineRoom() {
+            const nameInput = document.getElementById('online-player-name').value.trim();
+            const playerName = nameInput !== '' ? nameInput : 'Anfitrião';
+
+            roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            isHost = true;
+            myPlayerId = 1;
+
+            const hostPeerId = 'jornada-embrio-room-' + roomCode;
+            peer = new Peer(hostPeerId);
+
+            document.getElementById('online-lobby-box').classList.remove('hidden');
+            document.getElementById('lobby-room-code-display').innerText = roomCode;
+            document.getElementById('lobby-status-tag').innerText = 'Criando Sala...';
+
+            peer.on('open', () => {
+                document.getElementById('lobby-status-tag').innerText = 'Aguardando Jogadores...';
+                const av = AVATARS[0];
+                gameState.status = 'lobby';
+                gameState.players = [{ id: 1, peerId: 'host', name: playerName, color: av.color, bgTailwind: av.bgTailwind, tile: 1, skippedTurns: 0, isWinner: false }];
+                renderLobbyList();
+                document.getElementById('btn-start-online-game').classList.remove('hidden');
+            });
+
+            peer.on('connection', (conn) => {
+                conn.on('open', () => {
+                    peerConns[conn.peer] = conn;
+                });
+
+                conn.on('data', (data) => {
+                    handleIncomingAction(data, conn);
+                });
+
+                conn.on('close', () => {
+                    delete peerConns[conn.peer];
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Ocorreu um erro ao criar a sala. Tente novamente.');
+                console.error(err);
+            });
+        }
+
+        function joinOnlineRoom() {
+            const inputCode = document.getElementById('online-room-code-input').value.trim();
+            const nameInput = document.getElementById('online-player-name').value.trim();
+            const playerName = nameInput !== '' ? nameInput : 'Jogador';
+
+            if (!inputCode) {
+                alert('Digite o código numérico da sala!');
+                return;
+            }
+
+            roomCode = inputCode;
+            isHost = false;
+
+            peer = new Peer();
+
+            document.getElementById('online-lobby-box').classList.remove('hidden');
+            document.getElementById('lobby-room-code-display').innerText = roomCode;
+            document.getElementById('lobby-status-tag').innerText = 'Conectando...';
+
+            peer.on('open', () => {
+                const hostPeerId = 'jornada-embrio-room-' + roomCode;
+                hostConn = peer.connect(hostPeerId);
+
+                hostConn.on('open', () => {
+                    hostConn.send({ type: 'JOIN_REQUEST', name: playerName });
+                });
+
+                hostConn.on('data', (data) => {
+                    if (data.type === 'JOIN_SUCCESS') {
+                        myPlayerId = data.playerId;
+                        document.getElementById('lobby-status-tag').innerText = 'Conectado! Aguarde início...';
+                    } else if (data.type === 'SYNC_STATE') {
+                        applySyncedState(data.state);
+                    } else if (data.type === 'ANIMATE_DICE') {
+                        playDiceAnimationUI(data.diceValue);
+                    } else if (data.type === 'ERROR') {
+                        alert(data.msg);
+                    }
+                });
+
+                hostConn.on('close', () => {
+                    alert('Conexão perdida com o anfitrião.');
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Não foi possível encontrar esta sala. Verifique se o código está correto e se o anfitrião está com a tela aberta.');
+            });
+        }
+
+        function handleIncomingAction(data, conn) {
+            if (!isHost) return;
+
+            if (data.type === 'JOIN_REQUEST') {
+                if (gameState.status !== 'lobby') {
+                    conn.send({ type: 'ERROR', msg: 'A partida já está em andamento.' });
+                    return;
+                }
+                if (gameState.players.length >= 4) {
+                    conn.send({ type: 'ERROR', msg: 'A sala está cheia (máx 4 jogadores).' });
+                    return;
+                }
+
+                let existing = gameState.players.find(p => p.peerId === conn.peer);
+                if (!existing) {
+                    const newId = gameState.players.length + 1;
+                    const av = AVATARS[newId - 1];
+                    const newPlayer = { id: newId, peerId: conn.peer, name: data.name, color: av.color, bgTailwind: av.bgTailwind, tile: 1, skippedTurns: 0, isWinner: false };
+                    gameState.players.push(newPlayer);
+
+                    conn.send({ type: 'JOIN_SUCCESS', playerId: newId });
+                    addLogToState(`${newPlayer.name} entrou na sala!`);
+                    syncStateToAll();
+                }
+                return;
+            }
+
+            if (data.type === 'ACTION') {
+                const activePlayer = gameState.players[gameState.currentPlayerIdx];
+                if (activePlayer && activePlayer.id === data.senderId) {
+                    executeGameAction(data.actionName, data.payload);
+                }
+            }
+        }
+
+        function startOnlineGameHost() {
+            if (!isHost) return;
+            if (gameState.players.length < 2) {
+                alert('É necessário pelo menos 2 participantes para iniciar!');
+                return;
+            }
+
+            gameState.status = 'playing';
+            addLogToState(`Partida Online Iniciada!`);
+            syncStateToAll();
+        }
+
+        /* GERENCIADOR DE AÇÕES E ESTADO */
+        function dispatchAction(actionName, payload = {}) {
+            if (gameMode === 'local' || isHost) {
+                executeGameAction(actionName, payload);
+            } else {
+                if (hostConn && hostConn.open) {
+                    hostConn.send({
+                        type: 'ACTION',
+                        actionName: actionName,
+                        payload: payload,
+                        senderId: myPlayerId
+                    });
+                }
+            }
+        }
+
+        function executeGameAction(actionName, payload) {
+            if (!isHost && gameMode === 'online') return;
+
+            const player = gameState.players[gameState.currentPlayerIdx];
+
+            if (actionName === 'ROLL_DICE') {
+                if (gameState.isMoving || gameState.modalState) return;
+
+                if (player.skippedTurns > 0) {
+                    player.skippedTurns--;
+                    addLogToState(`${player.name} teve o turno pular por inibição parácrina.`);
+                    advanceTurn();
+                    return;
+                }
+
+                gameState.isMoving = true;
+                const diceVal = Math.floor(Math.random() * 6) + 1;
+
+                broadcastToAll({ type: 'ANIMATE_DICE', diceValue: diceVal });
+                playDiceAnimationUI(diceVal);
+
+                setTimeout(() => {
+                    addLogToState(`${player.name} tirou ${diceVal} no dado.`);
+                    movePlayerStepsHost(player, diceVal);
+                }, 1300);
+            }
+
+            else if (actionName === 'CLOSE_MODAL') {
+                if (!gameState.modalState) return;
+                const modal = gameState.modalState;
+                gameState.modalState = null;
+
+                if (modal.pendingMovement) {
+                    const steps = modal.pendingMovement;
+                    if (steps > 0) {
+                        movePlayerStepsHost(player, steps);
+                    } else if (steps < 0) {
+                        player.tile = Math.max(1, player.tile + steps);
+                        syncStateToAll();
+                        advanceTurn();
+                    }
+                } else if (modal.pendingSkip) {
+                    player.skippedTurns += modal.pendingSkip;
+                    syncStateToAll();
+                    advanceTurn();
+                } else {
+                    advanceTurn();
+                }
+            }
+
+            else if (actionName === 'FLIP_CARD') {
+                if (gameState.modalState && gameState.modalState.type === 'card') {
+                    gameState.modalState.flipped = true;
+                    syncStateToAll();
+                }
+            }
+
+            else if (actionName === 'APPLY_CARD') {
+                if (gameState.modalState && gameState.modalState.type === 'card') {
+                    const card = gameState.modalState.card;
+                    gameState.modalState = null;
+
+                    if (card.effect === 'advance') {
+                        addLogToState(`${player.name} avançou +${card.count} casas com a carta "${card.title}".`);
+                        movePlayerStepsHost(player, card.count);
+                    } else if (card.effect === 'back') {
+                        addLogToState(`${player.name} recuou -${card.count} casas com a carta "${card.title}".`);
+                        player.tile = Math.max(1, player.tile - card.count);
+                        syncStateToAll();
+                        advanceTurn();
+                    } else if (card.effect === 'skip') {
+                        addLogToState(`${player.name} perdeu ${card.count} rodada com a carta "${card.title}".`);
+                        player.skippedTurns += card.count;
+                        syncStateToAll();
+                        advanceTurn();
+                    } else if (card.effect === 'extra_turn') {
+                        addLogToState(`${player.name} ganhou um turno extra com a carta "${card.title}"!`);
+                        gameState.isMoving = false;
+                        syncStateToAll();
+                    }
+                }
+            }
+
+            else if (actionName === 'SELECT_TARGET') {
+                if (gameState.modalState && gameState.modalState.type === 'target') {
+                    const target = gameState.players.find(p => p.id === payload.targetId);
+                    const actionType = gameState.modalState.actionType;
+                    gameState.modalState = null;
+
+                    if (target) {
+                        if (actionType === 'permuta') {
+                            const temp = player.tile;
+                            player.tile = target.tile;
+                            target.tile = temp;
+                            addLogToState(`${player.name} trocou de posição com ${target.name}!`);
+                        } else if (actionType === 'inibicao') {
+                            target.skippedTurns += 1;
+                            addLogToState(`${player.name} inibiu ${target.name}, congelando sua próxima jogada.`);
+                        }
+                    }
+                    advanceTurn();
+                }
+            }
+        }
+
+        function movePlayerStepsHost(player, steps) {
+            let remaining = steps;
+
+            function step() {
+                if (remaining > 0 && player.tile < 36) {
+                    player.tile++;
+                    remaining--;
+                    syncStateToAll();
+                    setTimeout(step, 350);
+                } else {
+                    gameState.isMoving = false;
+                    processTileLandingHost(player);
+                }
+            }
+            step();
+        }
+
+        function processTileLandingHost(player) {
+            const tile = BOARD_TILES.find(t => t.id === player.tile);
+
+            if (player.tile >= 36) {
+                player.isWinner = true;
+                gameState.status = 'ended';
+                gameState.modalState = {
+                    type: 'victory',
+                    title: 'Feto Formado (8ª Semana)',
+                    desc: `Parabéns, ${player.name}! Você concluiu a Organogênese com sucesso!`,
+                    concept: tile.concept,
+                    effect: 'VITÓRIA CONCLUÍDA!'
+                };
+                addLogToState(`🏆 ${player.name} VENCEU A PARTIDA!`);
+                syncStateToAll();
+                return;
+            }
+
+            if (tile.type === 'start' || tile.type === 'neutral') {
+                gameState.modalState = {
+                    type: 'tile',
+                    title: tile.title,
+                    desc: tile.desc,
+                    concept: tile.concept,
+                    icon: tile.icon,
+                    effect: 'Espaço Celular de Maturação (Sem alteração)'
+                };
+            } else if (tile.type === 'marco') {
+                gameState.modalState = {
+                    type: 'tile',
+                    title: tile.title,
+                    desc: tile.desc,
+                    concept: tile.concept,
+                    icon: tile.icon,
+                    effect: `MARCO BIOLÓGICO: Avance +${tile.count} casa(s)!`,
+                    pendingMovement: tile.count
+                };
+            } else if (tile.type === 'obstaculo') {
+                let txt = tile.action === 'back' ? `OBSTÁCULO: Recue ${tile.count} casa(s)!` : `OBSTÁCULO: Perca ${tile.count} rodada(s)!`;
+                gameState.modalState = {
+                    type: 'tile',
+                    title: tile.title,
+                    desc: tile.desc,
+                    concept: tile.concept,
+                    icon: tile.icon,
+                    effect: txt,
+                    pendingMovement: tile.action === 'back' ? -tile.count : 0,
+                    pendingSkip: tile.action === 'skip' ? tile.count : 0
+                };
+            } else if (tile.type === 'sorte_azar') {
+                const randomCard = CARDS_SORTE_AZAR[Math.floor(Math.random() * CARDS_SORTE_AZAR.length)];
+                gameState.modalState = {
+                    type: 'card',
+                    card: randomCard,
+                    flipped: false
+                };
+            } else if (tile.type === 'permuta') {
+                gameState.modalState = {
+                    type: 'target',
+                    title: 'Permutação Celular',
+                    desc: 'Escolha um oponente para trocar de posição imediatamente no tabuleiro:',
+                    actionType: 'permuta'
+                };
+            } else if (tile.type === 'inibicao') {
+                gameState.modalState = {
+                    type: 'target',
+                    title: 'Inibição Parácrina',
+                    desc: 'Escolha um oponente para congelar por 1 rodada:',
+                    actionType: 'inibicao'
+                };
+            }
+
+            syncStateToAll();
+        }
+
+        function advanceTurn() {
+            gameState.isMoving = false;
+            gameState.modalState = null;
+            gameState.currentPlayerIdx = (gameState.currentPlayerIdx + 1) % gameState.players.length;
+            syncStateToAll();
+        }
+
+        function addLogToState(msg) {
+            gameState.logHistory.unshift(msg);
+            if (gameState.logHistory.length > 25) gameState.logHistory.pop();
+        }
+
+        function syncStateToAll() {
+            if (!isHost && gameMode === 'online') return;
+
+            broadcastToAll({
+                type: 'SYNC_STATE',
+                state: gameState
+            });
+
+            applySyncedState(gameState);
+        }
+
+        function broadcastToAll(payload) {
+            if (!isHost) return;
+            Object.values(peerConns).forEach(conn => {
+                if (conn && conn.open) {
+                    conn.send(payload);
+                }
+            });
+        }
+
+        /* RENDERIZAÇÃO DA INTERFACE */
+        function applySyncedState(newState) {
+            gameState = newState;
+
+            if (gameState.status === 'lobby') {
+                renderLobbyList();
+            } else if (gameState.status === 'playing' || gameState.status === 'ended') {
+                document.getElementById('setup-modal').classList.add('hidden');
+                document.getElementById('online-room-indicator').classList.remove('hidden');
+                document.getElementById('header-room-code-text').innerText = roomCode || 'LOCAL';
+
+                renderBoard();
+                renderPlayersList();
+                renderLogHistory();
+                updateTurnButtonUI();
+                renderModalUI();
+            }
+        }
+
+        function renderLobbyList() {
+            const list = document.getElementById('lobby-players-list');
+            if (!list) return;
+            list.innerHTML = gameState.players.map(p => `
+                <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs font-bold">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full ${p.bgTailwind}"></span>
+                        <span>${p.name} ${p.id === myPlayerId ? '<span class="text-[9px] text-indigo-400 font-normal">(Você)</span>' : ''}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">${p.id === 1 ? 'Anfitrião' : 'Conectado'}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('board-grid');
+            grid.innerHTML = '';
+
+            BOARD_TILES.forEach((tile) => {
+                const card = document.createElement('div');
+                card.id = `tile-${tile.id}`;
+                card.className = `tile-card relative min-h-[95px] sm:min-h-[110px] rounded-2xl p-2.5 flex flex-col justify-between border bg-gradient-to-br ${tile.color} border-white/10 shadow-md text-white overflow-hidden cursor-pointer`;
+                card.onclick = () => openTileInfo(tile);
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between w-full">
+                        <span class="w-6 h-6 rounded-lg bg-black/40 text-[10px] font-black flex items-center justify-center border border-white/10">${tile.id}</span>
+                        <i data-lucide="${tile.icon}" class="w-4 h-4 opacity-80"></i>
+                    </div>
+                    <div class="my-1">
+                        <h4 class="text-[11px] font-bold leading-tight line-clamp-1">${tile.title}</h4>
+                        <span class="text-[8px] text-white/70 block uppercase font-semibold">${tile.type.toUpperCase()}</span>
+                    </div>
+                    <div id="pawns-tile-${tile.id}" class="flex items-center gap-1 mt-auto min-h-[20px] z-10"></div>
+                `;
+                grid.appendChild(card);
+            });
+
+            updatePawnsPositions();
+            lucide.createIcons();
+        }
+
+        function updatePawnsPositions() {
+            BOARD_TILES.forEach(t => {
+                const el = document.getElementById(`pawns-tile-${t.id}`);
+                if (el) el.innerHTML = '';
+            });
+
+            gameState.players.forEach(p => {
+                const container = document.getElementById(`pawns-tile-${p.tile}`);
+                if (container) {
+                    const pawn = document.createElement('div');
+                    pawn.id = `pawn-player-${p.id}`;
+                    pawn.className = `w-5 h-5 rounded-full ${p.bgTailwind} border-2 border-white shadow-lg transform transition-transform flex items-center justify-center text-[9px] font-black text-white`;
+                    pawn.innerText = p.id;
+                    container.appendChild(pawn);
+                }
+            });
+        }
+
+        function renderPlayersList() {
+            const list = document.getElementById('players-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            gameState.players.forEach((p, idx) => {
+                const isCurrent = idx === gameState.currentPlayerIdx;
+                const item = document.createElement('div');
+                item.className = `p-2.5 rounded-2xl border flex items-center justify-between transition ${isCurrent ? 'bg-indigo-900/40 border-indigo-500/60 shadow-md ring-1 ring-indigo-500/30' : 'bg-slate-900/50 border-slate-800'}`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl ${p.bgTailwind} flex items-center justify-center font-bold text-xs text-white shadow">P${p.id}</div>
+                        <div>
+                            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                ${p.name} ${isCurrent ? '<span class="text-[9px] bg-indigo-500 text-white px-1.5 py-0.5 rounded font-black uppercase">Vez</span>' : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400">Casa ${p.tile} ${p.skippedTurns > 0 ? '• <span class="text-rose-400 font-bold">Inibido</span>' : ''}</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-black text-indigo-300 bg-indigo-950 px-2 py-1 rounded-lg border border-indigo-800/40">${p.tile}/36</span>
+                `;
+                list.appendChild(item);
+            });
+
+            const curr = gameState.players[gameState.currentPlayerIdx];
+            if (curr) {
+                document.getElementById('active-player-badge').style.backgroundColor = curr.color;
+                document.getElementById('active-player-name').innerText = curr.name;
+            }
+            document.getElementById('player-count-badge').innerText = `${gameState.players.length} Jogadores`;
+        }
+
+        function renderLogHistory() {
+            const logBox = document.getElementById('game-log');
+            logBox.innerHTML = gameState.logHistory.map(log => `<div class="py-0.5 border-b border-slate-800/50">${log}</div>`).join('');
+        }
+
+        function updateTurnButtonUI() {
+            const btn = document.getElementById('btn-roll');
+            const statusText = document.getElementById('game-status-text');
+
+            if (gameState.status === 'ended') {
+                btn.disabled = true;
+                statusText.innerText = 'Partida Encerrada!';
+                return;
+            }
+
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+            if (!activePlayer) return;
+
+            const isMyTurn = (gameMode === 'local') || (activePlayer.id === myPlayerId);
+
+            if (isMyTurn && !gameState.isMoving && !gameState.modalState) {
+                btn.disabled = false;
+                statusText.innerText = 'Sua vez! Clique em ROLAR DADO.';
+            } else {
+                btn.disabled = true;
+                if (gameState.isMoving) {
+                    statusText.innerText = `Movem-se no tabuleiro...`;
+                } else if (gameState.modalState) {
+                    statusText.innerText = `Aguardando decisão de ${activePlayer.name}...`;
+                } else {
+                    statusText.innerText = `Aguardando jogada de ${activePlayer.name}...`;
+                }
+            }
+        }
+
+        function renderModalUI() {
+            const modalContainer = document.getElementById('modal-container');
+            const cardModal = document.getElementById('card-3d-modal');
+            const targetModal = document.getElementById('target-modal');
+
+            modalContainer.classList.add('hidden');
+            cardModal.classList.add('hidden');
+            targetModal.classList.add('hidden');
+
+            if (!gameState.modalState) return;
+
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+            const isMyTurn = (gameMode === 'local') || (activePlayer.id === myPlayerId);
+            const m = gameState.modalState;
+
+            if (m.type === 'tile' || m.type === 'victory') {
+                modalContainer.classList.remove('hidden');
+                document.getElementById('modal-title').innerText = m.title;
+                document.getElementById('modal-desc').innerText = m.desc;
+                document.getElementById('modal-concept-text').innerText = m.concept;
+                document.getElementById('modal-effect-box').innerText = m.effect;
+
+                const iconEl = document.getElementById('modal-icon');
+                if (m.icon) iconEl.setAttribute('data-lucide', m.icon);
+                lucide.createIcons();
+
+                const btn = document.getElementById('modal-btn');
+                if (isMyTurn) {
+                    btn.disabled = false;
+                    btn.innerText = 'CONTINUAR PARTIDA';
+                    btn.className = 'w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-indigo-600/30 transition cursor-pointer';
+                    btn.onclick = () => dispatchAction('CLOSE_MODAL');
+                } else {
+                    btn.disabled = true;
+                    btn.innerText = `AGUARDANDO ${activePlayer.name.toUpperCase()}...`;
+                    btn.className = 'w-full py-3.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs tracking-wide cursor-not-allowed';
+                    btn.onclick = null;
+                }
+            }
+
+            else if (m.type === 'card') {
+                cardModal.classList.remove('hidden');
+                const cardObject = document.getElementById('card-3d-object');
+                const frontFace = document.getElementById('card-3d-front-face');
+                const badge = document.getElementById('card-3d-badge');
+                const btn = document.getElementById('card-3d-btn');
+
+                if (m.flipped) {
+                    cardObject.classList.add('flipped');
+                    document.getElementById('card-3d-title').innerText = m.card.title;
+                    document.getElementById('card-3d-desc').innerText = m.card.desc;
+                    document.getElementById('card-3d-concept').innerText = m.card.concept;
+
+                    if (m.card.type === 'sorte') {
+                        frontFace.className = 'card-3d-face card-3d-front sorte-border';
+                        badge.className = 'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                        badge.innerText = '🎉 CARTA DE SORTE';
+                    } else {
+                        frontFace.className = 'card-3d-face card-3d-front azar-border';
+                        badge.className = 'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                        badge.innerText = '⚠️ CARTA DE AZAR';
+                    }
+
+                    if (isMyTurn) {
+                        btn.disabled = false;
+                        btn.innerText = 'CONTINUAR ➡️';
+                        btn.className = 'w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold text-xs tracking-wide shadow-lg transition cursor-pointer';
+                        btn.onclick = (e) => { e.stopPropagation(); dispatchAction('APPLY_CARD'); };
+                    } else {
+                        btn.disabled = true;
+                        btn.innerText = `AGUARDANDO ${activePlayer.name.toUpperCase()}...`;
+                        btn.className = 'w-full py-2.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs cursor-not-allowed';
+                        btn.onclick = null;
+                    }
+                } else {
+                    cardObject.classList.remove('flipped');
+                    cardObject.onclick = () => {
+                        if (isMyTurn) dispatchAction('FLIP_CARD');
+                    };
+                }
+            }
+
+            else if (m.type === 'target') {
+                targetModal.classList.remove('hidden');
+                document.getElementById('target-modal-title').innerText = m.title;
+                document.getElementById('target-modal-desc').innerText = m.desc;
+
+                const btnContainer = document.getElementById('target-buttons');
+                btnContainer.innerHTML = '';
+
+                gameState.players.filter(p => p.id !== activePlayer.id).forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = `w-full py-2.5 px-4 rounded-xl ${p.bgTailwind} text-white font-bold text-xs shadow-md transition flex items-center justify-between ${isMyTurn ? 'hover:brightness-110 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`;
+                    btn.innerHTML = `<span>${p.name}</span> <span>Casa ${p.tile}</span>`;
+                    if (isMyTurn) {
+                        btn.onclick = () => dispatchAction('SELECT_TARGET', { targetId: p.id });
+                    }
+                    btnContainer.appendChild(btn);
+                });
+            }
+        }
+
+        function playDiceAnimationUI(result) {
+            playSoundFX('dice');
+            const dice = document.getElementById('dice-cube');
+            const rotations = { 1: {x:0,y:0}, 2: {x:0,y:-180}, 3: {x:0,y:90}, 4: {x:0,y:-90}, 5: {x:90,y:0}, 6: {x:-90,y:0} };
+            const extraX = (Math.floor(Math.random() * 3) + 2) * 360;
+            const extraY = (Math.floor(Math.random() * 3) + 2) * 360;
+            const target = rotations[result];
+
+            dice.style.transform = `rotateX(${target.x + extraX}deg) rotateY(${target.y + extraY}deg)`;
+        }
+
+        function openGlossaryModal() {
+            const grid = document.getElementById('glossary-grid');
+            grid.innerHTML = '';
+            BOARD_TILES.forEach(tile => {
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col gap-1';
+                card.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-indigo-900 text-indigo-300 font-bold text-[10px] flex items-center justify-center">${tile.id}</span>
+                        <h4 class="text-xs font-bold text-white">${tile.title}</h4>
+                    </div>
+                    <p class="text-[11px] text-indigo-200/90 italic leading-relaxed">${tile.concept}</p>
+                `;
+                grid.appendChild(card);
+            });
+            document.getElementById('glossary-modal').classList.remove('hidden');
+        }
+
+        function closeGlossaryModal() { document.getElementById('glossary-modal').classList.add('hidden'); }
+
+        function filterGlossary(q) {
+            const query = q.toLowerCase();
+            document.querySelectorAll('#glossary-grid > div').forEach(item => {
+                item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function openTileInfo(tile) {
+            const modal = document.getElementById('modal-container');
+            document.getElementById('modal-title').innerText = tile.title;
+            document.getElementById('modal-desc').innerText = tile.desc;
+            document.getElementById('modal-concept-text').innerText = tile.concept;
+            document.getElementById('modal-effect-box').innerText = `Informação Pedagógica da Casa ${tile.id}`;
+
+            const iconEl = document.getElementById('modal-icon');
+            if (tile.icon) iconEl.setAttribute('data-lucide', tile.icon);
+            lucide.createIcons();
+
+            const btn = document.getElementById('modal-btn');
+            btn.disabled = false;
+            btn.innerText = 'FECHAR INFORMAÇÃO';
+            btn.className = 'w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs tracking-wide transition cursor-pointer';
+            btn.onclick = () => renderModalUI();
+
+            modal.classList.remove('hidden');
+        }
+
+        function initCellularCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+
+            function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const particles = [];
+            for (let i = 0; i < 35; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height, radius: Math.random() * 12 + 4,
+                    color: ['rgba(99, 102, 241, 0.25)', 'rgba(236, 72, 153, 0.2)', 'rgba(56, 189, 248, 0.25)'][Math.floor(Math.random() * 3)],
+                    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4, pulse: Math.random() * Math.PI * 2
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.pulse += 0.02;
+                    if (p.x < 0) p.x = width; if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height; if (p.y > height) p.y = 0;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius + Math.sin(p.pulse) * 2, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color; ctx.shadowBlur = 15; ctx.shadowColor = p.color; ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        window.onload = function() {
+            renderSetupPlayerInputs();
+            initCellularCanvas();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
